@@ -1,0 +1,136 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  ClusterBaseName:
+    Type: String
+    Default: eks-base
+
+  TargetRegion:
+    Type: String
+    Default: ap-northeast-2
+
+  AvailabilityZone1:
+    Type: String
+    Default: ap-northeast-2a
+
+  AvailabilityZone2:
+    Type: String
+    Default: ap-northeast-2b
+
+  AvailabilityZone3:
+    Type: String
+    Default: ap-northeast-2c
+
+  VpcBlock:
+    Type: String
+    Default: 192.168.0.0/16
+
+  BaseSubnet1Block:
+    Type: String
+    Default: 192.168.0.0/24
+
+  BaseSubnet2Block:
+    Type: String
+    Default: 192.168.1.0/24
+
+  BaseSubnet3Block:
+    Type: String
+    Default: 192.168.2.0/24
+
+Resources:
+  EksWorkVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcBlock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ClusterBaseName}-VPC
+
+  BaseSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone1
+      CidrBlock: !Ref BaseSubnet1Block
+      VpcId: !Ref EksWorkVPC
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ClusterBaseName}-BaseSubnet1
+
+  BaseSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone2
+      CidrBlock: !Ref BaseSubnet2Block
+      VpcId: !Ref EksWorkVPC
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ClusterBaseName}-BaseSubnet2
+
+  BaseSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone3
+      CidrBlock: !Ref BaseSubnet3Block
+      VpcId: !Ref EksWorkVPC
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ClusterBaseName}-BaseSubnet3
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref EksWorkVPC
+
+  BaseSubnetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref EksWorkVPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ClusterBaseName}-BaseSubnetRouteTable
+
+  BaseSubnetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref BaseSubnetRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  BaseSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BaseSubnet1
+      RouteTableId: !Ref BaseSubnetRouteTable
+
+  BaseSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BaseSubnet2
+      RouteTableId: !Ref BaseSubnetRouteTable
+
+  BaseSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BaseSubnet3
+      RouteTableId: !Ref BaseSubnetRouteTable
+
+Outputs:
+  VPC:
+    Value: !Ref EksWorkVPC
+
+  BaseSubnets:
+    Value: !Join
+      - ","
+      - [!Ref BaseSubnet1, !Ref BaseSubnet2, !Ref BaseSubnet3]
+
+  RouteTable:
+    Value: !Ref BaseSubnetRouteTable

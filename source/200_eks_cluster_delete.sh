@@ -1,0 +1,1 @@
+eksctl delete cluster --region=ap-northeast-2 --name=eks-base-cluster
